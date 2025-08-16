@@ -1,8 +1,8 @@
 from typing import Optional, Tuple
 from dataclasses import dataclass
 
-import argparse
-from graphviz import Digraph
+import networkx as nx
+from pyvis.network import Network
 
 import lldb
 from lldb import (
@@ -21,12 +21,12 @@ from lldb import (
 
 @dataclass
 class GraphState:
-    graph: Digraph
+    graph: nx.MultiDiGraph
     addresses: set[int]
     nullCounter: int
 
     def __init__(self, name: str = "links"):
-        self.graph = Digraph(name)
+        self.graph = nx.MultiDiGraph()
         self.addresses = set()
         self.nullCounter = 0
 
@@ -55,9 +55,11 @@ def extendGraphFromRoot(root: SBValue, graphState: GraphState) -> str:
         # unifying the null node leads to undesired merging of all structures that use the null-terminator
         if addr == 0:
             nodeStr = f"NULL{graphState.nullCounter}"
-            graphState.graph.node(nodeStr, label="nullptr")
+            graphState.graph.add_node(
+                nodeStr, label="nullptr", shape="circle", style="filled"
+            )
             if parent is not None:
-                graphState.graph.edge(
+                graphState.graph.add_edge(
                     f"ADDR{parent[0].GetValueAsUnsigned()}",
                     nodeStr,
                     label=parent[1].GetName(),
@@ -68,7 +70,7 @@ def extendGraphFromRoot(root: SBValue, graphState: GraphState) -> str:
         # if already visited, skip recursion but add the incoming edge
         if addr in graphState.addresses:
             if parent is not None:
-                graphState.graph.edge(
+                graphState.graph.add_edge(
                     f"ADDR{parent[0].GetValueAsUnsigned()}",
                     f"ADDR{addr}",
                     label=parent[1].GetName(),
@@ -77,21 +79,33 @@ def extendGraphFromRoot(root: SBValue, graphState: GraphState) -> str:
 
         graphState.addresses.add(addr)
 
-        graphState.graph.node(f"ADDR{addr}", label=value.Dereference().__str__())
+        fields: list[SBTypeMember] = structType.fields
+
+        # pretty-print non-pointer fields with primitive datatypes
+        # TODO: make exhaustive
+        nodeStr = ""
+        for field in fields:
+            fieldType: SBType = field.GetType()
+            if fieldType.GetBasicType() in [lldb.eBasicTypeInt]:
+                nodeStr += f"{field.GetName()}={value.GetChildMemberWithName(field.GetName()).GetValueAsSigned()}\n"
+        nodeStr = nodeStr.strip()
+
+        graphState.graph.add_node(
+            f"ADDR{addr}", label=nodeStr, shape="circle", style="filled"
+        )
         if parent is not None:
-            graphState.graph.edge(
+            graphState.graph.add_edge(
                 f"ADDR{parent[0].GetValueAsUnsigned()}",
                 f"ADDR{addr}",
                 label=parent[1].GetName(),
             )
 
         # go over children
-        fields: list[SBTypeMember] = structType.fields
         for field in fields:
-            field_type: SBType = field.GetType()
+            fieldType: SBType = field.GetType()
             if (
-                field_type.IsPointerType()
-                and field_type.GetPointeeType().GetTypeClass() == lldb.eTypeClassStruct
+                fieldType.IsPointerType()
+                and fieldType.GetPointeeType().GetTypeClass() == lldb.eTypeClassStruct
             ):
                 child_value: SBValue = value.GetChildMemberWithName(field.GetName())
                 dfs(
@@ -123,7 +137,15 @@ def visualize_expr(
     graphState = GraphState()
     rootStr = extendGraphFromRoot(root, graphState)
 
-    file = graphState.graph.save()
+    file = "links.dot"
+    nx.drawing.nx_pydot.write_dot(graphState.graph, file)
+
+    net = Network(directed=True, notebook=False)
+    net.from_nx(graphState.graph, default_node_size=25, default_edge_weight=2)
+    net.force_atlas_2based()
+
+    net.write_html("links.html", notebook=False, open_browser=False)
+
     print(f"Visualized graph to: {file}")
 
 
@@ -149,6 +171,7 @@ def visualize(
             and type.IsPointerType()
             and structType.GetTypeClass() == lldb.eTypeClassStruct
             and structType.GetName() == typeStr
+            and "<read memory from" not in value.deref.__str__()
         )
 
     variables = list(filter(filterFn, variables))
@@ -156,12 +179,20 @@ def visualize(
     graphState = GraphState()
     for rootIndex, variable in enumerate(variables):
         rootStr = extendGraphFromRoot(variable, graphState)
-        graphState.graph.node(
+        graphState.graph.add_node(
             f"ROOT{rootIndex}", label=variable.GetName(), shape="box", style="filled"
         )
-        graphState.graph.edge(f"ROOT{rootIndex}", rootStr)
+        graphState.graph.add_edge(f"ROOT{rootIndex}", rootStr)
 
-    file = graphState.graph.save()
+    file = "links.dot"
+    nx.drawing.nx_pydot.write_dot(graphState.graph, file)
+
+    net = Network(directed=True, notebook=False)
+    net.from_nx(graphState.graph, default_node_size=25, default_edge_weight=2)
+    net.force_atlas_2based()
+
+    net.write_html("links.html", notebook=False, open_browser=False)
+
     print(f"Visualized graph to: {file}")
 
 
