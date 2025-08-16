@@ -1,0 +1,4 @@
+run
+command script import ../commands.py
+visualize l1
+visualize l2
