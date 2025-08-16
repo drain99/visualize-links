@@ -9,3 +9,11 @@ template <typename T, size_t N> std::array<T *, N> nodes() {
   }
   return ret;
 }
+
+struct ListNode {
+  int val;
+  ListNode *next = nullptr;
+
+  ListNode() : val(0) {}
+  ListNode(int val) : val(val) {}
+};

@@ -1,6 +1,8 @@
 from typing import Optional, Tuple
+from dataclasses import dataclass
 
-import graphviz
+import argparse
+from graphviz import Digraph
 
 import lldb
 from lldb import (
@@ -11,35 +13,30 @@ from lldb import (
     SBThread,
     SBFrame,
     SBValue,
+    SBValueList,
     SBType,
     SBTypeMember,
 )
 
 
-def __lldb_init_module(debugger: SBDebugger, internal_dict):
-    debugger.HandleCommand(
-        "command script add --overwrite -f commands.visualize visualize"
-    )
-    print("Installed visualize-links commands.")
+@dataclass
+class GraphState:
+    graph: Digraph
+    addresses: set[int]
+    nullCounter: int
+
+    def __init__(self, name: str = "links"):
+        self.graph = Digraph(name)
+        self.addresses = set()
+        self.nullCounter = 0
 
 
-def visualize(
-    debugger: SBDebugger, command: str, result: SBCommandReturnObject, internal_dict
-):
-    expr = command.strip()
-    if len(expr) == 0:
-        return
+def extendGraphFromRoot(root: SBValue, graphState: GraphState) -> str:
+    def dfs(
+        value: SBValue, parent: Optional[Tuple[SBValue, SBTypeMember]] = None
+    ) -> str:
+        nonlocal graphState
 
-    target: SBTarget = debugger.GetSelectedTarget()
-    process: SBProcess = target.GetProcess()
-    thread: SBThread = process.GetSelectedThread()
-    frame: SBFrame = thread.GetSelectedFrame()
-
-    graph = graphviz.Digraph("links")
-    visited: set[int] = set()
-    nullCounter: int = 0
-
-    def dfs(value: SBValue, parent: Optional[Tuple[SBValue, SBTypeMember]] = None):
         # invariant: value & parent (if not None) has to be an address ie a pointer type
         # this is true at start by definition and we only recurse for pointer children
         # all non-pointer children are handled inplace
@@ -57,32 +54,32 @@ def visualize(
         # use unique nodes to represent each null node
         # unifying the null node leads to undesired merging of all structures that use the null-terminator
         if addr == 0:
-            nonlocal nullCounter
-            graph.node(f"NULL{nullCounter}", label="nullptr")
+            nodeStr = f"NULL{graphState.nullCounter}"
+            graphState.graph.node(nodeStr, label="nullptr")
             if parent is not None:
-                graph.edge(
+                graphState.graph.edge(
                     f"ADDR{parent[0].GetValueAsUnsigned()}",
-                    f"NULL{nullCounter}",
+                    nodeStr,
                     label=parent[1].GetName(),
                 )
-            nullCounter += 1
-            return
+            graphState.nullCounter += 1
+            return nodeStr
 
         # if already visited, skip recursion but add the incoming edge
-        if addr in visited:
+        if addr in graphState.addresses:
             if parent is not None:
-                graph.edge(
+                graphState.graph.edge(
                     f"ADDR{parent[0].GetValueAsUnsigned()}",
                     f"ADDR{addr}",
                     label=parent[1].GetName(),
                 )
-            return
+            return f"ADDR{addr}"
 
-        visited.add(addr)
+        graphState.addresses.add(addr)
 
-        graph.node(f"ADDR{addr}", label=value.Dereference().__str__())
+        graphState.graph.node(f"ADDR{addr}", label=value.Dereference().__str__())
         if parent is not None:
-            graph.edge(
+            graphState.graph.edge(
                 f"ADDR{parent[0].GetValueAsUnsigned()}",
                 f"ADDR{addr}",
                 label=parent[1].GetName(),
@@ -105,8 +102,74 @@ def visualize(
                     ),
                 )
 
-    root: SBValue = frame.EvaluateExpression(expr)
-    dfs(root)
+        return f"ADDR{addr}"
 
-    file = graph.save()
+    return dfs(root)
+
+
+def visualize_expr(
+    debugger: SBDebugger, command: str, result: SBCommandReturnObject, internal_dict
+):
+    exprStr = command.strip()
+    if len(exprStr) == 0:
+        return
+
+    target: SBTarget = debugger.GetSelectedTarget()
+    process: SBProcess = target.GetProcess()
+    thread: SBThread = process.GetSelectedThread()
+    frame: SBFrame = thread.GetSelectedFrame()
+
+    root: SBValue = frame.EvaluateExpression(exprStr)
+    graphState = GraphState()
+    rootStr = extendGraphFromRoot(root, graphState)
+
+    file = graphState.graph.save()
     print(f"Visualized graph to: {file}")
+
+
+def visualize(
+    debugger: SBDebugger, command: str, result: SBCommandReturnObject, internal_dict
+):
+    typeStr = command.strip()
+    if len(typeStr) == 0:
+        return
+
+    target: SBTarget = debugger.GetSelectedTarget()
+    process: SBProcess = target.GetProcess()
+    thread: SBThread = process.GetSelectedThread()
+    frame: SBFrame = thread.GetSelectedFrame()
+
+    variables: SBValueList = frame.variables
+
+    def filterFn(value: SBValue):
+        type: SBType = value.GetType()
+        structType: SBType = type.GetPointeeType()
+        return (
+            value.IsValid()
+            and type.IsPointerType()
+            and structType.GetTypeClass() == lldb.eTypeClassStruct
+            and structType.GetName() == typeStr
+        )
+
+    variables = list(filter(filterFn, variables))
+
+    graphState = GraphState()
+    for rootIndex, variable in enumerate(variables):
+        rootStr = extendGraphFromRoot(variable, graphState)
+        graphState.graph.node(
+            f"ROOT{rootIndex}", label=variable.GetName(), shape="box", style="filled"
+        )
+        graphState.graph.edge(f"ROOT{rootIndex}", rootStr)
+
+    file = graphState.graph.save()
+    print(f"Visualized graph to: {file}")
+
+
+def __lldb_init_module(debugger: SBDebugger, internal_dict):
+    debugger.HandleCommand(
+        "command script add --overwrite -f commands.visualize_expr visualize-expr"
+    )
+    debugger.HandleCommand(
+        "command script add --overwrite -f commands.visualize visualize"
+    )
+    print("Installed visualize-links commands.")
