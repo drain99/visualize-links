@@ -1,6 +1,3 @@
+command script import ../lldb/commands.py
 run
-command script import ../commands.py
-visualize-expr l1
-visualize-expr l2
-visualize-expr l3
 visualize ListNode

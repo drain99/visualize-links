@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    /* Type Checking */
+    "strict": true, /* Enable all strict type-checking options. */
+    "noImplicitAny": true, /* Raise error on expressions and declarations with an implied 'any' type. */
+    "strictNullChecks": true, /* Enable strict checking of null and undefined. */
+    "strictFunctionTypes": true, /* Enable strict checking of function types. */
+    "strictBindCallApply": true, /* Enable strict 'bind', 'call', and 'apply' methods on functions. */
+    "strictPropertyInitialization": true, /* Check for uninitialized properties in classes. */
+    "noImplicitThis": true, /* Raise error on 'this' expressions with an implied 'any' type. */
+    "alwaysStrict": true, /* Parse in strict mode and emit "use strict" for each source file. */
+    "noUnusedLocals": true, /* Report errors on unused local variables. */
+    "noUnusedParameters": true, /* Report errors on unused parameters. */
+    "allowUnreachableCode": false, /* Disallow unreachable code. */
+    "allowUnusedLabels": false, /* Disallow unused labels. */
+    "forceConsistentCasingInFileNames": true, /* Disallow inconsistently-cased references to the same file. */
+    /* Modules */
+    "moduleResolution": "node", /* Resolve modules using Node.js style. */
+    "module": "umd", /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */
+    "esModuleInterop": true, /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
+    /* JavaScript Support */
+    "allowJs": true, /* Allow JavaScript files to be compiled. */
+    /* Emit */
+    "target": "es5", /* Specify ECMAScript target version. */
+    "lib": [
+      "dom",
+      "es5",
+      "ES2015",
+      "es2015.iterable"
+    ], /* Specify library files to be included in the compilation. */
+    "outDir": "./dist", /* Redirect output structure to the directory. */
+    "rootDir": "./src", /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
+    "removeComments": true, /* Do not emit comments to output. */
+    "declaration": false, /* Do not generate .d.ts files for emitted JavaScript files. */
+    "sourceMap": true, /* Generates corresponding .map file. */
+    /* Advanced Options */
+    "skipLibCheck": true, /* Skip type checking of declaration files. */
+  },
+  "include": [
+    "src/**/*" /* Include all files in the 'src' folder. */
+  ]
+}

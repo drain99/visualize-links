@@ -1,6 +1,8 @@
 {
   "cSpell.words": [
+    "addrs",
     "lldb",
     "Pointee"
-  ]
+  ],
+  "python.analysis.typeCheckingMode": "standard"
 }
