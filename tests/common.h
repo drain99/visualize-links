@@ -12,6 +12,7 @@ template <typename T, size_t N> std::array<T *, N> nodes() {
 
 struct ListNode {
   int val;
+  int val2 = 54;
   ListNode *next = nullptr;
 
   ListNode() : val(0) {}

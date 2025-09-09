@@ -5,10 +5,6 @@ const WS_URL = "ws://localhost:8765";
 const WIDTH = 1200
 const HEIGHT = 800
 
-// const fixedNodeIds = new Set();
-
-// const nodePositions = new Map();
-
 const canvasSvg = d3.select("#canvas-svg")
   .attr("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
 
@@ -19,174 +15,170 @@ canvasSvg.call(
     .on("zoom", () => canvas.attr("transform", d3.event.transform))
 );
 
-// group pad helps keep a minimum distance between name groups and value nodes
-const nameGroupPad = 20;
 // node margin helps keep space between node & edge boundaries
 const nodeMargin = 4;
 // pad is the inner space between node's boundary and its label text
 const nodePad = 8;
+// extra space used when computing link lengths based on label width
+const linkPad = 5;
 
 function render(data: string) {
-  const color = d3.scaleOrdinal(d3.schemeCategory20);
-
   const graph = JSON.parse(data);
-  console.log("graph:", graph);
+  console.log("graph", graph);
 
   // reset render
   canvas.selectAll("*").remove();
 
-  // start simulation with fixed nodes
-  // graph.nodes.forEach(node => {
-  //   if (fixedNodeIds.has(node.id)) {
-  //     node.fixed = true;
-  //   }
-  // });
-
-  // graph.nodes.forEach(node => {
-  //   if (nodePositions.has(node.id)) {
-  //     console.log("using known position");
-  //     const pos = nodePositions.get(node.id);
-  //     node.x = pos.x;
-  //     node.y = pos.y;
-  //     node.bounds = pos.bounds;
-  //   }
-  // })
-
-  // set group padding & make target point to node itself instead of index into node array
+  // recover internal pointers
   graph.links.forEach(link => {
     link.source = graph.nodes[link.source];
     link.target = graph.nodes[link.target];
   });
 
-  graph.groups.forEach(group => {
-    group.padding = nameGroupPad;
-    for (const label in group.links) {
-      group.links[label].forEach((index, i, links) => {
-        links[i] = graph.nodes[index];
-      })
-    }
+  // condense labels
+  graph.links.forEach(link => {
+    // TODO: use text with tspan for newline handling
+    link.forward_label = link.forward_label.join("\n");
+    link.backward_label = link.backward_label.join("\n");
   });
 
-  // { group, label, targetNode, [links] }
-
-  const groupLinks = []
-  graph.groups.forEach(group => {
-    for (const label in group.links) {
-      group.links[label].forEach(target => {
-        groupLinks.push({
-          group: group,
-          label: label,
-          target: target,
-        });
-      })
-    }
-  })
+  // extract out self-loops for simulation and rendering
+  graph.selfLinks = graph.links.filter(link => link.tag === "value" && link.source == link.target)
+  graph.links = graph.links.filter(link => link.source !== link.target)
 
   const simulation = cola.d3adaptor(d3)
     .nodes(graph.nodes)
     .links(graph.links)
-    .groups(graph.groups)
     .size([WIDTH, HEIGHT])
-    .linkDistance(d => {
-      if (d.source.tag === "name" && d.target.tag === "value") {
-        return 25;
-      }
-      return d.length;
-    })
+    // link distance is computed on .start() call
+    // length attribute wil be filled before that during d3 binding
+    .linkDistance(link => link.length)
     .avoidOverlaps(true)
+    .handleDisconnected(true);
 
-  const nameGroups = canvas.selectAll(".name-group")
-    .data(graph.groups)
-    .enter().append("rect").classed("name-group", true)
-    .style("fill", color("name-group"))
-    .call(simulation.drag)
+  console.log("simulation", simulation);
 
-  const valueLinks = canvas.selectAll(".value-link")
-    .data(graph.links.filter(link => link.tag === "value"))
-    .enter().append("line").classed("value-link", true);
+  const valueLinks = graph.links.filter(link => link.tag === "value");
+  const valueLinksLine = canvas.selectAll(".value-link")
+    .data(valueLinks)
+    .enter().append("line").classed("value-link", true)
+    .attr("marker-end", valueLink => (valueLink.backward_label.length > 0) ? "url(#canvas-arrowhead-end)" : "url(#canvas-arrowhead-end)")
+    .attr("marker-start", valueLink => (valueLink.backward_label.length > 0) ? "url(#canvas-arrowhead-start)" : null)
 
-  const nameLinks = canvas.selectAll(".name-link")
-    .data(groupLinks)
-    .enter().append("line").classed("name-link", true)
-    .each(d => function (d) {
-      // need to map back to the simulation links
-    })
+  const valueSelfLinks = graph.selfLinks;
+  // TODO: rendering logic for self-loops
 
-  const valueNodes = canvas.selectAll(".value-node")
-    .data(graph.nodes.filter(node => node.tag === "value"))
+  const nameLinks = graph.links.filter(link => link.tag === "name");
+  const nameLinksLine = canvas.selectAll(".name-link")
+    .data(nameLinks)
+    .enter().append("line").classed("name-link", true);
+
+  const valueNodes = graph.nodes.filter(node => node.tag === "value");
+  const valueNodesRect = canvas.selectAll(".value-node")
+    .data(valueNodes)
     .enter().append("rect").classed("value-node", true)
-    .style("fill", color("value-node"))
     .call(simulation.drag);
 
-  const nameNodes = canvas.selectAll(".name-node")
-    .data(graph.nodes.filter(node => node.tag === "name"))
+  const nameNodes = graph.nodes.filter(node => node.tag === "name");
+  const nameNodesRect = canvas.selectAll(".name-node")
+    .data(nameNodes)
     .enter().append("rect").classed("name-node", true)
-    .style("fill", color("name-node"))
-    .call(simulation.drag)
-  // .on('dblclick', function (d) {
-  //   console.log(d);
-  //   d3.event.stopPropagation();
-  //   d.fixed = !d.fixed;
-  //   fixedNodeIds.add(d.id);
-  //   if (d.fixed) {
-  //     d3.select(this).style("fill", color("name-node-fixed"));
-  //   } else {
-  //     d3.select(this).style("fill", color("name-node"));
-  //   }
-  // });
+    .call(simulation.drag);
 
-  const valueNodeLabels = canvas.selectAll(".value-node-label")
-    .data(graph.nodes.filter(node => node.tag === "value"))
+  const valueNodesText = canvas.selectAll(".value-node-label")
+    .data(valueNodes)
     .enter().append("text").classed("value-node-label", true)
-    .text(d => d.label)
-    .call(simulation.drag)
-    .each(function (d) {
-      // compute bounds of the label's node
-      // based on the label's text space with padding and margin.
-      const bb = this.getBBox()
-      const extra = 2 * nodeMargin + 2 * nodePad;
-      d.width = bb.width + extra;
-      d.height = bb.height + extra;
-    });
+    .call(simulation.drag);
 
-  const nameNodeLabels = canvas.selectAll(".name-node-label")
-    .data(graph.nodes.filter(node => node.tag === "name"))
-    .enter().append("text").classed("name-node-label", true)
-    .text(d => d.label)
-    .each(function (d) {
-      // compute bounds of the label's node
-      // based on the label's text space with padding and margin.
+  const valueNodesTspan = valueNodesText.selectAll("tspan")
+    .data(valueNode => valueNode.label)
+    .enter().append("tspan")
+    // set to 0 because default starts after previous tspan which inflates
+    // the text element's width leading to incorrect width & height computation
+    .attr("x", 0)
+    .attr("dy", (_, i) => (i === 0) ? 0 : "1.2em")
+    .text(labelLine => labelLine);
+
+  valueNodesText
+    .attr("transform", function (valueNode) {
+      // move to center the text element while preserving left-alignment with text-anchor
+      // also adjust vertical alignment
+      const bb = this.getBBox();
+      return `translate(${-bb.width / 2} ${(3 - 2 * valueNode.label.length) * bb.height / (4 * valueNode.label.length)})`
+    })
+    .each(function (valueNode) {
+      // compute node rect bounds used by cola
       const bb = this.getBBox();
       const extra = 2 * nodeMargin + 2 * nodePad;
-      d.width = bb.width + extra;
-      d.height = bb.height + extra;
-    })
-    .call(simulation.drag)
-  // .on('dblclick', function (d) {
-  //   console.log(d);
-  //   d3.event.stopPropagation();
-  //   d.fixed = !d.fixed;
-  //   fixedNodeIds.add(d.id);
-  //   if (d.fixed) {
-  //     d3.select(this).style("fill", color("name-node-fixed"));
-  //   } else {
-  //     d3.select(this).style("fill", color("name-node"));
-  //   }
-  // });
-
-  const valueLinkLabels = canvas.selectAll(".value-link-label")
-    .data(graph.links.filter(link => link.tag === "value"))
-    .enter().append("text").classed("value-link-label", true)
-    .text(d => d.label)
-    .each(function (d) {
-      // compute label's text width
-      d.length = this.getBBox().width + Math.max(d.source.height, d.source.width) + Math.max(d.target.height, d.target.width) - 2 * nodeMargin;
+      valueNode.width = bb.width + extra;
+      valueNode.height = bb.height + extra;
     });
 
-  const nameLinkLabels = canvas.selectAll(".name-link-label")
-    .data(groupLinks)
+  const nameNodesText = canvas.selectAll(".name-node-label")
+    .data(nameNodes)
+    .enter().append("text").classed("name-node-label", true)
+    .call(simulation.drag);
+
+  const nameNodesTspan = nameNodesText.selectAll("tspan")
+    .data(nameNode => nameNode.label)
+    .enter().append("tspan")
+    // set to 0 because default starts after previous tspan which inflates
+    // the text element's width leading to incorrect width & height computation
+    .attr("x", 0)
+    .attr("dy", (_, i) => (i === 0) ? 0 : "1.2em")
+    .text(labelLine => labelLine);
+
+  nameNodesText
+    .attr("transform", function (nameNode) {
+      // move to center the text element while preserving left-alignment with text-anchor
+      // also adjust vertical alignment
+      const bb = this.getBBox();
+      return `translate(${-bb.width / 2} ${(3 - 2 * nameNode.label.length) * bb.height / (4 * nameNode.label.length)})`
+    })
+    .each(function (nameNode) {
+      // compute node rect bounds used by cola
+      const bb = this.getBBox();
+      const extra = 2 * nodeMargin + 2 * nodePad;
+      nameNode.width = bb.width + extra;
+      nameNode.height = bb.height + extra;
+    });
+
+  const valueLinkForwardText = canvas.selectAll(".value-link-forward-label")
+    .data(valueLinks)
+    .enter().append("text").classed("value-link-forward-label", true)
+    .text(valueLink => (valueLink.forward_label.length > 0) ? `${valueLink.forward_label}` : "")
+    .each(function (valueLink) {
+      // compute link line length based on forward label
+      const width = this.getBBox().width;
+      const sourceRadius = Math.hypot(valueLink.source.width / 2, valueLink.source.height / 2);
+      const targetRadius = Math.hypot(valueLink.target.width / 2, valueLink.target.height / 2);
+      valueLink.length = width + sourceRadius + targetRadius + linkPad;
+    });
+
+  const valueLinkBackwardText = canvas.selectAll(".value-link-backward-label")
+    .data(valueLinks)
+    .enter().append("text").classed("value-link-backward-label", true)
+    .text(valueLink => (valueLink.backward_label.length > 0) ? `${valueLink.backward_label}` : "")
+    .each(function (valueLink) {
+      // update link line length based on backward label
+      const width = this.getBBox().width;
+      const sourceRadius = Math.hypot(valueLink.source.width / 2, valueLink.source.height / 2);
+      const targetRadius = Math.hypot(valueLink.target.width / 2, valueLink.target.height / 2);
+      valueLink.length = Math.max(valueLink.length, width + sourceRadius + targetRadius + linkPad);
+    });
+
+  // name links don't have backward label
+  const nameLinkText = canvas.selectAll(".name-link-label")
+    .data(nameLinks)
     .enter().append("text").classed("name-link-label", true)
-    .text(d => d.label);
+    .text(nameLink => nameLink.forward_label)
+    .each(function (nameLink) {
+      // compute link line length based on forward label
+      const width = this.getBBox().width;
+      const sourceRadius = Math.hypot(nameLink.source.width / 2, nameLink.source.height / 2);
+      const targetRadius = Math.hypot(nameLink.target.width / 2, nameLink.target.height / 2);
+      nameLink.length = width + sourceRadius + targetRadius + linkPad;
+    });
 
   simulation.start(25, 50, 50);
 
@@ -201,73 +193,59 @@ function render(data: string) {
   });
 
   simulation.on("tick", () => {
-    // console.log("storing node positions...");
-    // graph.nodes.forEach(node => {
-    //   console.log(node);
-    //   nodePositions.set(node.id, { x: node.x, y: node.y, bounds: node.bounds });
-    // });
+    // compute inner bounds which is used for rendering
+    valueNodes.forEach(valueNode => valueNode.renderBounds = valueNode.bounds.inflate(-nodeMargin));
+    nameNodes.forEach(nameNode => nameNode.renderBounds = nameNode.bounds.inflate(-nodeMargin));
 
-    // compute inner bounds for nodes (with labels) & groups (with nodes)
-    valueNodes.each(d => d.innerBounds = d.bounds.inflate(-nodeMargin));
-    nameNodes.each(d => d.innerBounds = d.bounds.inflate(-nodeMargin));
-    nameGroups.each(d => d.innerBounds = d.bounds.inflate(-nameGroupPad));
+    // compute link routes for rendering
+    valueLinks.forEach(valueLink => valueLink.forwardRoute = cola.makeEdgeBetween(valueLink.source.renderBounds, valueLink.target.renderBounds, 5));
+    valueLinks.forEach(valueLink => valueLink.backwardRoute = cola.makeEdgeBetween(valueLink.target.renderBounds, valueLink.source.renderBounds, 5));
+    nameLinks.forEach(nameLink => nameLink.forwardRoute = cola.makeEdgeBetween(nameLink.source.renderBounds, nameLink.target.renderBounds, 5));
 
-    // compute routes for edges
-    valueLinks.each(d => d.route = cola.makeEdgeBetween(d.source.innerBounds, d.target.innerBounds, nodePad + 1));
-    nameLinks.each(d => d.route = cola.makeEdgeBetween(d.group.innerBounds, d.target.innerBounds, nodePad + 1));
+    valueLinksLine
+      .attr("x1", valueLink => (valueLink.backward_label.length > 0) ? valueLink.backwardRoute.arrowStart.x : valueLink.forwardRoute.sourceIntersection.x)
+      .attr("y1", valueLink => (valueLink.backward_label.length > 0) ? valueLink.backwardRoute.arrowStart.y : valueLink.forwardRoute.sourceIntersection.y)
+      .attr("x2", valueLink => valueLink.forwardRoute.arrowStart.x)
+      .attr("y2", valueLink => valueLink.forwardRoute.arrowStart.y);
 
-    // render everything in order of definition
-    nameGroups
-      .attr("x", d => d.innerBounds.x)
-      .attr("y", d => d.innerBounds.y)
-      .attr("width", d => d.innerBounds.width())
-      .attr("height", d => d.innerBounds.height());
+    nameLinksLine
+      .attr("x1", nameLink => nameLink.forwardRoute.sourceIntersection.x)
+      .attr("y1", nameLink => nameLink.forwardRoute.sourceIntersection.y)
+      .attr("x2", nameLink => nameLink.forwardRoute.arrowStart.x)
+      .attr("y2", nameLink => nameLink.forwardRoute.arrowStart.y);
 
-    valueLinks
-      .attr("x1", d => d.route.sourceIntersection.x)
-      .attr("y1", d => d.route.sourceIntersection.y)
-      .attr("x2", d => d.route.arrowStart.x)
-      .attr("y2", d => d.route.arrowStart.y);
+    valueNodesRect
+      .attr("x", valueNode => valueNode.renderBounds.x)
+      .attr("y", valueNode => valueNode.renderBounds.y)
+      .attr("width", valueNode => valueNode.renderBounds.width())
+      .attr("height", valueNode => valueNode.renderBounds.height());
 
-    nameLinks
-      // .each(d => console.log("nameLinks:", d, d.route))
-      .attr("x1", d => d.route.sourceIntersection.x)
-      .attr("y1", d => d.route.sourceIntersection.y)
-      .attr("x2", d => d.route.arrowStart.x)
-      .attr("y2", d => d.route.arrowStart.y);
+    nameNodesRect
+      .attr("x", nameNode => nameNode.renderBounds.x)
+      .attr("y", nameNode => nameNode.renderBounds.y)
+      .attr("width", nameNode => nameNode.renderBounds.width())
+      .attr("height", nameNode => nameNode.renderBounds.height());
 
-    valueNodes
-      .attr("x", d => d.innerBounds.x)
-      .attr("y", d => d.innerBounds.y)
-      .attr("width", d => d.innerBounds.width())
-      .attr("height", d => d.innerBounds.height());
+    valueNodesText
+      .attr("x", valueNode => valueNode.renderBounds.cx())
+      .attr("y", valueNode => valueNode.renderBounds.cy());
 
-    nameNodes
-      .attr("x", d => d.innerBounds.x)
-      .attr("y", d => d.innerBounds.y)
-      .attr("width", d => d.innerBounds.width())
-      .attr("height", d => d.innerBounds.height());
+    valueNodesTspan
+      .attr("x", function () { return this.parentElement!.getAttribute("x"); });
 
-    valueNodeLabels
-      .attr("x", d => d.innerBounds.cx())
-      .attr("y", function (d) {
-        const h = this.getBBox().height;
-        return d.innerBounds.cy() + h / 4;
-      });
+    nameNodesText
+      .attr("x", nameNode => nameNode.renderBounds.cx())
+      .attr("y", nameNode => nameNode.renderBounds.cy());
 
-    nameNodeLabels
-      .attr("x", d => d.innerBounds.cx())
-      .attr("y", function (d) {
-        const h = this.getBBox().height;
-        return d.innerBounds.cy() + h / 4;
-      });
+    nameNodesTspan
+      .attr("x", function () { return this.parentElement!.getAttribute("x"); });
 
-    valueLinkLabels
-      .attr("x", d => (d.route.sourceIntersection.x + d.route.arrowStart.x) / 2)
-      .attr("y", d => (d.route.sourceIntersection.y + d.route.arrowStart.y) / 2)
-      .attr("transform", function (d) {
-        const source = d.route.sourceIntersection;
-        const target = d.route.arrowStart;
+    valueLinkForwardText
+      .attr("x", valueLink => (valueLink.forwardRoute.sourceIntersection.x + valueLink.forwardRoute.arrowStart.x) / 2)
+      .attr("y", valueLink => (valueLink.forwardRoute.sourceIntersection.y + valueLink.forwardRoute.arrowStart.y) / 2)
+      .attr("transform", valueLink => {
+        const source = valueLink.forwardRoute.sourceIntersection;
+        const target = valueLink.forwardRoute.arrowStart;
 
         const cx = (source.x + target.x) / 2;
         const cy = (source.y + target.y) / 2;
@@ -279,16 +257,17 @@ function render(data: string) {
         if (angle > 90 || angle < -90) {
           angle += 180;
         }
+
+        // translate so text is above the line
         return `rotate(${angle} ${cx} ${cy}) translate(0 -2.5)`;
       });
 
-    nameLinkLabels
-      // .each(d => console.log("nameLinkLabels:", d, d.route))
-      .attr("x", d => (d.route.sourceIntersection.x + d.route.arrowStart.x) / 2)
-      .attr("y", d => (d.route.sourceIntersection.y + d.route.arrowStart.y) / 2)
-      .attr("transform", function (d) {
-        const source = d.route.sourceIntersection;
-        const target = d.route.arrowStart;
+    valueLinkBackwardText
+      .attr("x", valueLink => (valueLink.forwardRoute.sourceIntersection.x + valueLink.forwardRoute.arrowStart.x) / 2)
+      .attr("y", valueLink => (valueLink.forwardRoute.sourceIntersection.y + valueLink.forwardRoute.arrowStart.y) / 2)
+      .attr("transform", function (valueLink) {
+        const source = valueLink.forwardRoute.sourceIntersection;
+        const target = valueLink.forwardRoute.arrowStart;
 
         const cx = (source.x + target.x) / 2;
         const cy = (source.y + target.y) / 2;
@@ -300,7 +279,31 @@ function render(data: string) {
         if (angle > 90 || angle < -90) {
           angle += 180;
         }
-        return `rotate(${angle} ${cx} ${cy}) translate(0 -2.5)`
+
+        // translate so text is below the line
+        return `rotate(${angle} ${cx} ${cy}) translate(0 ${2.5 + (3 * this.getBBox().height) / 4})`;
+      });
+
+    nameLinkText
+      .attr("x", nameLink => (nameLink.forwardRoute.sourceIntersection.x + nameLink.forwardRoute.arrowStart.x) / 2)
+      .attr("y", nameLink => (nameLink.forwardRoute.sourceIntersection.y + nameLink.forwardRoute.arrowStart.y) / 2)
+      .attr("transform", nameLink => {
+        const source = nameLink.forwardRoute.sourceIntersection;
+        const target = nameLink.forwardRoute.arrowStart;
+
+        const cx = (source.x + target.x) / 2;
+        const cy = (source.y + target.y) / 2;
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+
+        // compute rotation in degrees
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angle > 90 || angle < -90) {
+          angle += 180;
+        }
+
+        // translate so text is above the line
+        return `rotate(${angle} ${cx} ${cy}) translate(0 -2.5)`;
       });
   });
 }
