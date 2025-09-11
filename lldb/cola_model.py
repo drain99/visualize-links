@@ -14,12 +14,18 @@ class Node(BaseModel):
     tag: Tag
 
 
+class LinkLabel(BaseModel):
+    label: str
+    diff_type: M.DiffType
+
+
 class Link(BaseModel):
     source: NodeIndex
     target: NodeIndex
-    forward_label: list[str]
-    backward_label: list[str]
+    forward_labels: list[LinkLabel]
+    backward_labels: list[LinkLabel]
     tag: Tag
+    diff_type: M.DiffType
 
 
 class Graph(BaseModel):

@@ -1,4 +1,8 @@
 command script import ../lldb/commands.py
-b list_reverse_k_group.cpp:21:28
+b list_reverse_k_group.cpp:14
+b list_reverse_k_group.cpp:29
 run
 visualize ListNode
+continue
+visualize ListNode
+visualize-diff

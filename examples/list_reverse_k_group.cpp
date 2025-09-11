@@ -13,6 +13,7 @@ public:
             if (not r) return ret;
             
             auto l1 = dummy->next;
+            l1->val2 = 12;
             auto nextdummy = dummy->next;
             auto rn = r->next;
             auto rev = rn;

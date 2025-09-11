@@ -30,15 +30,22 @@ def convert_to_cola(g: M.Graph) -> C.Graph:
 
         if (target, source) in links_condensed:
             # bi-directional edge
-            links_condensed[(target, source)].backward_label = desc.accessors_to_label()
+            links_condensed[(target, source)].backward_labels = [
+                C.LinkLabel(label=l[0], diff_type=l[1])
+                for l in desc.accessors_to_label()
+            ]
         else:
             # add new edge
             links_condensed[(source, target)] = C.Link(
                 source=source_index,
                 target=target_index,
-                forward_label=desc.accessors_to_label(),
-                backward_label=[],
+                forward_labels=[
+                    C.LinkLabel(label=l[0], diff_type=l[1])
+                    for l in desc.accessors_to_label()
+                ],
+                backward_labels=[],
                 tag="value",
+                diff_type="",
             )
 
     # condense name nodes & links
@@ -69,8 +76,10 @@ def convert_to_cola(g: M.Graph) -> C.Graph:
         node_id2index[id] = len(nodes) - 1
 
         for name_diff, targets in name_link:
+            diff_type: M.DiffType = (
+                name_diff if (name_diff is "old" or name_diff is "new") else ""
+            )
             source_index = node_id2index[id]
-            label = [name_diff if name_diff is not None else ""]
             for target in targets:
                 target_index = node_id2index[target]
 
@@ -82,9 +91,10 @@ def convert_to_cola(g: M.Graph) -> C.Graph:
                 links_condensed[(id, target)] = C.Link(
                     source=source_index,
                     target=target_index,
-                    forward_label=label,
-                    backward_label=[],
+                    forward_labels=[],
+                    backward_labels=[],
                     tag="name",
+                    diff_type=diff_type,
                 )
 
     return C.Graph(nodes=list(nodes.values()), links=list(links_condensed.values()))

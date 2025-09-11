@@ -9,6 +9,7 @@ NodeId: TypeAlias = str
 LinkId: TypeAlias = tuple[NodeId, NodeId]
 NameDiffType: TypeAlias = Literal["old", "new", "both"]
 ValueDiffType: TypeAlias = Literal["old", "new", "both_same", "both_diff"]
+DiffType: TypeAlias = Literal["", "old", "new"]
 AccessorDiffType: TypeAlias = NameDiffType
 AttrScalar: TypeAlias = int | float | str
 
@@ -22,15 +23,17 @@ class AttrValue(BaseModel):
     diff_type: ValueDiffType | None
     old_scalar: AttrScalar | None
 
-    def attr_value_to_label(self) -> str:
+    def attr_value_to_label(self) -> tuple[str, str]:
         match self.diff_type:
             case None | "both_same":
-                return f"{self.scalar}"
-            case "old" | "new" as d:
-                return f"{d}: {self.scalar}"
+                return "", f"{self.scalar}"
+            case "old" as d:
+                return "-", f"{self.scalar}"
+            case "new" as d:
+                return "+", f"{self.scalar}"
             case "both_diff":
                 assert self.old_scalar is not None
-                return f"change: {self.old_scalar} -> {self.scalar}"
+                return "", f"{self.old_scalar} → {self.scalar}"
 
     def old(self) -> AttrValue:
         assert self.diff_type is None
@@ -85,7 +88,8 @@ class NodeDesc(BaseModel):
     def attrs_to_label(self) -> list[str]:
         l: list[str] = []
         for attr, value in self.attrs.items():
-            l.append(f"{attr}: {value.attr_value_to_label()}")
+            prefix, label = value.attr_value_to_label()
+            l.append(f"{prefix}{attr}: {label}")
 
         return l
 
@@ -152,20 +156,20 @@ class AccessorDesc(BaseModel):
 class LinkDesc(BaseModel):
     accessors: dict[str, AccessorDesc]
 
-    def accessors_to_label(self) -> list[str]:
+    def accessors_to_label(self) -> list[tuple[str, DiffType]]:
         accessors_condensed: defaultdict[AccessorDiffType | None, list[str]] = (
             defaultdict(list)
         )
         for accessor, desc in self.accessors.items():
             accessors_condensed[desc.diff_type].append(accessor)
 
-        l: list[str] = []
+        l: list[tuple[str, DiffType]] = []
         for diff_type, accessors in accessors_condensed.items():
             match diff_type:
                 case None | "both":
-                    l.append(",".join(accessors))
+                    l.append((",".join(accessors), ""))
                 case "old" | "new" as d:
-                    l.append(f"{d}: {','.join(accessors)}")
+                    l.append((",".join(accessors), d))
 
         return l
 

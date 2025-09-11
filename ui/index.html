@@ -69,7 +69,6 @@
     }
 
     .name-link {
-      stroke: #2c2c2c;
       stroke-width: 2px;
       stroke-opacity: 1;
       marker-end: url(#canvas-arrowhead-end);
@@ -126,14 +125,6 @@
       text-anchor: middle;
       dominant-baseline: "hanging";
     }
-
-    .name-link-label {
-      fill: #000000;
-      font-family: Verdana;
-      font-size: 16px;
-      text-anchor: middle;
-      dominant-baseline: "middle";
-    }
   </style>
 </head>
 
@@ -151,21 +142,12 @@
       <svg id="canvas-svg" preserveAspectRatio="xMidYMid meet" aria-label="Graph visualization">
         <defs>
           <marker id="canvas-arrowhead-end" viewBox="0 -5 10 10" refX="5" orient="auto" markerWidth="5" markerHeight="5"
-            stroke-width="0px" fill="#2c2c2c">
+            stroke-width="0px" fill="context-stroke">
             <path d="M0,-5L10,0L0,5L2,0"></path>
           </marker>
           <marker id="canvas-arrowhead-start" viewBox="0 -5 10 10" refX="5" orient="auto-start-reverse" markerWidth="5"
-            markerHeight="5" stroke-width="0px" fill="#2c2c2c">
+            markerHeight="5" stroke-width="0px" fill="context-stroke">
             <path d="M0,5L10,0L0,-5L2,0"></path>
-          </marker>
-
-          <marker id="canvas-half-arrowhead-end" viewBox="0 -5 10 10" refX="5" orient="auto" markerWidth="5"
-            markerHeight="5" stroke-width="0px" fill="#2c2c2c">
-            <path d="M0,-5 L10,0 L2,0 Z"></path>
-          </marker>
-          <marker id="canvas-half-arrowhead-start" viewBox="0 -5 10 10" refX="5" orient="auto-start-reverse"
-            markerWidth="5" markerHeight="5" stroke-width="0px" fill="#2c2c2c">
-            <path d="M2,0 L10,0 L0,5 Z"></path>
           </marker>
 
           <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
