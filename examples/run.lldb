@@ -1,8 +1,10 @@
 command script import ../lldb/commands.py
-b list_reverse_k_group.cpp:14
-b list_reverse_k_group.cpp:29
+shell sleep 3
+b list_reverse_k_group.cpp:12
 run
-visualize ListNode
+visualize-expr ret
 continue
-visualize ListNode
-visualize-diff
+visualize-expr ret
+continue
+visualize-expr l2
+visualize-diff 0 1

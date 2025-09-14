@@ -22,7 +22,7 @@ def get_current_frame(debugger: SBDebugger) -> SBFrame:
     return frame
 
 
-def is_initialized_in_current_frame(value: SBValue, frame: SBFrame):
+def is_initialized_in_current_frame(value: SBValue, frame: SBFrame) -> bool:
     decl_pc: SBDeclaration = value.GetDeclaration()
     frame_pc: SBLineEntry = frame.line_entry
 

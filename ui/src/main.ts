@@ -7,10 +7,11 @@ const WS_URL = "ws://localhost:8765";
 const WIDTH = 1200
 const HEIGHT = 800
 
-const canvasSvg = d3.select("#canvas-svg")
+const canvasSvg = d3.select("#canvasSvg")
   .attr("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
 
 const canvas = canvasSvg.select("#canvas");
+const historyCanvas = d3.select("#historyItemListDiv")
 
 canvasSvg.call(
   d3.zoom()
@@ -22,10 +23,9 @@ const nodeMargin = 4;
 // pad is the inner space between node's boundary and its label text
 const nodePad = 8;
 // extra space used when computing link lengths based on label width
-const linkPad = 5;
+const linkPad = 10;
 
-function render(data: string) {
-  const graph: M.ColaModel = JSON.parse(data);
+function renderGraph(graph: M.ColaGraph) {
   console.log("graph", graph);
 
   // reset render
@@ -60,19 +60,19 @@ function render(data: string) {
   console.log("simulation", simulation);
 
   const valueLinks = graph.links.filter(link => link.tag === "value");
-  const valueLinksLine = canvas.selectAll(".value-link")
+  const valueLinksLine = canvas.selectAll(".valueLink")
     .data(valueLinks)
-    .enter().append("line").classed("value-link", true)
-    .attr("marker-end", "url(#canvas-arrowhead-end)")
-    .attr("marker-start", valueLink => (valueLink.backward_labels.length > 0) ? "url(#canvas-arrowhead-start)" : null)
+    .enter().append("line").classed("valueLink", true)
+    .attr("marker-end", "url(#arrowheadEndMarker)")
+    .attr("marker-start", valueLink => (valueLink.backward_labels.length > 0) ? "url(#arrowheadStartMarker)" : null)
 
   // TODO: rendering logic for self-loops
   const valueSelfLinks = graph.selfLinks;
 
   const nameLinks = graph.links.filter(link => link.tag === "name");
-  const nameLinksLine = canvas.selectAll(".name-link")
+  const nameLinksLine = canvas.selectAll(".nameLink")
     .data(nameLinks)
-    .enter().append("line").classed("name-link", true)
+    .enter().append("line").classed("nameLink", true)
     .style("stroke", nameLink => {
       switch (nameLink.diff_type) {
         case "": return "#2c2c2c";
@@ -82,21 +82,18 @@ function render(data: string) {
     });
 
   const valueNodes = graph.nodes.filter(node => node.tag === "value");
-  const valueNodesRect = canvas.selectAll(".value-node")
+  const valueNodesRect = canvas.selectAll(".valueNode")
     .data(valueNodes)
-    .enter().append("rect").classed("value-node", true)
-    .call(simulation.drag);
+    .enter().append("rect").classed("valueNode", true);
 
   const nameNodes = graph.nodes.filter(node => node.tag === "name");
-  const nameNodesRect = canvas.selectAll(".name-node")
+  const nameNodesRect = canvas.selectAll(".nameNode")
     .data(nameNodes)
-    .enter().append("rect").classed("name-node", true)
-    .call(simulation.drag);
+    .enter().append("rect").classed("nameNode", true);
 
-  const valueNodesText = canvas.selectAll(".value-node-label")
+  const valueNodesText = canvas.selectAll(".valueNodeLabel")
     .data(valueNodes)
-    .enter().append("text").classed("value-node-label", true)
-    .call(simulation.drag);
+    .enter().append("text").classed("valueNodeLabel", true);
 
   const valueNodesTspan = valueNodesText.selectAll("tspan")
     .data(valueNode => valueNode.label)
@@ -122,10 +119,9 @@ function render(data: string) {
       valueNode.height = bb.height + extra;
     });
 
-  const nameNodesText = canvas.selectAll(".name-node-label")
+  const nameNodesText = canvas.selectAll(".nameNodeLabel")
     .data(nameNodes)
-    .enter().append("text").classed("name-node-label", true)
-    .call(simulation.drag);
+    .enter().append("text").classed("nameNodeLabel", true);
 
   const nameNodesTspan = nameNodesText.selectAll("tspan")
     .data(nameNode => nameNode.label)
@@ -151,9 +147,9 @@ function render(data: string) {
       nameNode.height = bb.height + extra;
     });
 
-  const valueLinkForwardText = canvas.selectAll(".value-link-forward-label")
+  const valueLinkForwardText = canvas.selectAll(".valueLinkForwardLabel")
     .data(valueLinks)
-    .enter().append("text").classed("value-link-forward-label", true);
+    .enter().append("text").classed("valueLinkForwardLabel", true);
 
   const valueLinkForwardTspan = valueLinkForwardText.selectAll("tspan")
     .data(valueLink => valueLink.forward_labels)
@@ -178,9 +174,9 @@ function render(data: string) {
       valueLink.length = width + sourceRadius + targetRadius + linkPad;
     });
 
-  const valueLinkBackwardText = canvas.selectAll(".value-link-backward-label")
+  const valueLinkBackwardText = canvas.selectAll(".valueLinkBackwardLabel")
     .data(valueLinks)
-    .enter().append("text").classed("value-link-backward-label", true);
+    .enter().append("text").classed("valueLinkBackwardLabel", true);
 
   const valueLinkBackwardTspan = valueLinkBackwardText.selectAll("tspan")
     .data(valueLink => valueLink.backward_labels)
@@ -211,20 +207,7 @@ function render(data: string) {
     nameLink.length = sourceRadius + targetRadius + linkPad;
   });
 
-  simulation.start(25, 50, 50);
-
-  // TODO: implement graph freeze support
-  // document.getElementById("freeze-checkbox")?.addEventListener("change", ev => {
-  //   if (ev.target.checked) {
-  //     simulation.stop();
-  //     // graph.nodes.forEach(node => node.fixed = true);
-  //   } else {
-  //     // graph.nodes.forEach(node => node.fixed = false);
-  //     simulation.resume();
-  //   }
-  // });
-
-  simulation.on("tick", () => {
+  function tick() {
     // compute inner bounds which is used for rendering
     valueNodes.forEach(valueNode => valueNode.renderBounds = valueNode.bounds!.inflate(-nodeMargin));
     nameNodes.forEach(nameNode => nameNode.renderBounds = nameNode.bounds!.inflate(-nodeMargin));
@@ -329,7 +312,64 @@ function render(data: string) {
     valueLinkBackwardTspan
       .attr("x", function () { return this.parentElement!.getAttribute("x"); })
       .text(linkLabel => linkLabel.link.reverseLabelArrow! ? `${linkLabel.label}→` : `←${linkLabel.label}`);
-  });
+
+  }
+
+  simulation.on("tick", tick);
+
+  simulation.start(25, 50, 50);
+  [valueNodesRect, nameNodesRect, valueNodesText, nameNodesText].forEach(d => d.call(simulation.drag));
+
+  // TODO: implement graph freeze support
+  // const manualDrag = d3.drag()
+  //   .on("start", () => { })
+  //   .on("drag", function (node: M.ColaNode) {
+  //     node.x = d3.event.x;
+  //     node.y = d3.event.y;
+  //     const dx = d3.event.dx;
+  //     const dy = d3.event.dy;
+  //     node.bounds!.x += dx;
+  //     node.bounds!.X += dx;
+  //     node.bounds!.y += dy;
+  //     node.bounds!.Y += dy;
+  //   })
+  //   .on("end", () => { });
+
+  // document.getElementById("freezeCheckbox")!.addEventListener("change", function () {
+  //   if (this.checked) {
+  //     simulation.stop();
+  //     [valueNodesRect, nameNodesRect, valueNodesText, nameNodesText].forEach(d => d.on(".drag", null));
+  //     [valueNodesRect, nameNodesRect, valueNodesText, nameNodesText].forEach(d => d.call(manualDrag));
+  //   } else {
+  //     simulation.start(25, 50, 50);
+  //     [valueNodesRect, nameNodesRect, valueNodesText, nameNodesText].forEach(d => d.on(".drag", null));
+  //     [valueNodesRect, nameNodesRect, valueNodesText, nameNodesText].forEach(d => d.call(simulation.drag));
+  //   }
+  // });
+}
+
+function renderHistory(history: { i: number, label: M.HistoryLabel }[]) {
+  console.log(history);
+
+  // reset render
+  historyCanvas.selectAll("*").remove();
+
+  historyCanvas.selectAll(".historyItem")
+    .data(history)
+    .enter().append("div").classed("historyItem", true)
+    .each(function (label) {
+      d3.select(this)
+        .append("p")
+        .text(`#${label.i}`);
+
+      d3.select(this)
+        .append("p")
+        .text(`${label.label.function_name}`);
+
+      d3.select(this)
+        .append("p")
+        .text(`${label.label.filename}:${label.label.line}:${label.label.column}`);
+    });
 }
 
 function setStatus(text: string, cls: string) {
@@ -342,11 +382,24 @@ function connect() {
   const ws = new WebSocket(WS_URL);
   setStatus('connecting…', 'warn');
 
-  ws.onopen = () => setStatus('connected', 'ok');
+  ws.onopen = () => {
+    setStatus('connected', 'ok');
+    ws.send(JSON.stringify({ type: 'history' }));
+  };
 
   ws.onmessage = (event: MessageEvent<string>) => {
     try {
-      render(event.data);
+      const data = JSON.parse(event.data);
+
+      if (data.type === "history") {
+        const history: { i: number, label: M.HistoryLabel }[] = data.history;
+        renderHistory(history);
+      } else if (data.type === "graph") {
+        const graph: M.ColaGraph = data.graph;
+        renderGraph(graph);
+      } else {
+        throw new Error("Unrecognized message received from server!");
+      }
     } catch (e) {
       console.error('Invalid graph message:', e);
       setStatus('error rendering graph', 'bad');

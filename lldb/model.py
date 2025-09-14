@@ -33,7 +33,7 @@ class AttrValue(BaseModel):
                 return "+", f"{self.scalar}"
             case "both_diff":
                 assert self.old_scalar is not None
-                return "", f"{self.old_scalar} → {self.scalar}"
+                return "", f"{self.old_scalar}→{self.scalar}"
 
     def old(self) -> AttrValue:
         assert self.diff_type is None

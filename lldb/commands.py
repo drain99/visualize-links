@@ -23,41 +23,77 @@ from server import Server
 from history import HistoryLabel, History
 
 SERVER_DICT_KEY = "visualize-links-server"
-HISTORY_DICT_KEY = "visualize-links-history"
+
+
+def publish_graph(
+    g: M.Graph, internal_dict: dict, frame: Optional[SBFrame] = None
+) -> Optional[str]:
+    label: Optional[HistoryLabel] = None
+    if frame is not None:
+        line_entry: lldb.SBLineEntry = frame.line_entry
+        file_spec: lldb.SBFileSpec = line_entry.GetFileSpec()
+        func_name: str = frame.GetFunctionName().split('(')[0]
+        label = HistoryLabel(
+            filename=file_spec.basename,
+            line=line_entry.line,
+            column=line_entry.column,
+            function_name=func_name,
+        )
+
+    server: Server = internal_dict[SERVER_DICT_KEY]
+    index = server.publish_graph(g, label)
+
+    return f"{index}: {label}" if index is not None else None
+
+
+def get_history(internal_dict: dict) -> History:
+    server: Server = internal_dict[SERVER_DICT_KEY]
+    return server.history
 
 
 def visualize_expr(
-    debugger: SBDebugger, command: str, result: SBCommandReturnObject, internal_dict
+    debugger: SBDebugger,
+    command: str,
+    result: SBCommandReturnObject,
+    internal_dict: dict,
 ):
-    expr_str = command.strip()
+    args = command.strip().split()
+    if len(args) != 1:
+        result.AppendWarning(
+            "visualize-expr requires exactly one argument: an expression!"
+        )
+        return
 
-    target: SBTarget = debugger.GetSelectedTarget()
-    process: SBProcess = target.GetProcess()
-    thread: SBThread = process.GetSelectedThread()
-    frame: SBFrame = thread.GetSelectedFrame()
+    expr_str = args[0]
 
+    frame = utils.get_current_frame(debugger)
     value: SBValue = frame.EvaluateExpression(expr_str)
     assert value.IsValid(), "Failed to evaluate given <expr>"
 
     builder = GraphBuilder(allowed_types=None)
-    builder.extend_from_value(value)
+    builder.extend_from_value(value, {expr_str})
     g = builder.graph()
 
-    server: Server = internal_dict[SERVER_DICT_KEY]
-    server.send_graph(g)
+    msg = publish_graph(g, internal_dict, frame)
+    result.AppendMessage(msg)
 
 
 def visualize_type(
-    debugger: SBDebugger, command: str, result: SBCommandReturnObject, internal_dict
+    debugger: SBDebugger,
+    command: str,
+    result: SBCommandReturnObject,
+    internal_dict: dict,
 ):
-    allowed_types = {command.strip()}
+    args = command.strip().split()
+    if len(args) != 1:
+        result.AppendWarning("visualize requires exactly one argument: a type name!")
+        return
 
-    target: SBTarget = debugger.GetSelectedTarget()
-    process: SBProcess = target.GetProcess()
-    thread: SBThread = process.GetSelectedThread()
-    frame: SBFrame = thread.GetSelectedFrame()
+    allowed_types = {args[0]}
 
-    def filter_fn(value: SBValue):
+    frame = utils.get_current_frame(debugger)
+
+    def filter_fn(value: SBValue) -> bool:
         return (
             value.IsValid()
             and utils.is_pointer_to_type(value.type, allowed_types)
@@ -71,24 +107,50 @@ def visualize_type(
         builder.extend_from_value(variable, {variable.name})
     g = builder.graph()
 
-    server: Server = internal_dict[SERVER_DICT_KEY]
-    server.send_graph(g)
-
-    history: History = internal_dict[HISTORY_DICT_KEY]
-    history.add(HistoryLabel(), g)
+    msg = publish_graph(g, internal_dict, frame)
+    result.AppendMessage(msg)
 
 
 def visualize_diff(
-    debugger: SBDebugger, command: str, result: SBCommandReturnObject, internal_dict
+    debugger: SBDebugger,
+    command: str,
+    result: SBCommandReturnObject,
+    internal_dict: dict,
 ):
-    history: History = internal_dict[HISTORY_DICT_KEY]
+    args = command.strip().split()
+    if len(args) != 2:
+        result.AppendWarning(
+            "visualize-diff requires exactly two arguments: a pair of graph indices!"
+        )
+        return
 
-    _, g1 = history.at(-2)
-    _, g2 = history.at(-1)
+    try:
+        old = int(args[0])
+        new = int(args[1])
+    except ValueError:
+        result.AppendWarning(
+            "visualize-diff requires exactly two arguments: a pair of graph indices!"
+        )
+        return
+
+    history = get_history(internal_dict)
+    _l1, g1 = history.at(old)
+    _l2, g2 = history.at(new)
     g = g1.difference(g2)
 
-    server: Server = internal_dict[SERVER_DICT_KEY]
-    server.send_graph(g)
+    publish_graph(g, internal_dict)
+
+
+def visualize_history(
+    debugger: SBDebugger,
+    command: str,
+    result: SBCommandReturnObject,
+    internal_dict: dict,
+):
+    history = get_history(internal_dict)
+
+    for i, label, _g in history:
+        result.AppendMessage(f"{i}: {label}")
 
 
 def __lldb_init_module(debugger: SBDebugger, internal_dict):
@@ -96,13 +158,14 @@ def __lldb_init_module(debugger: SBDebugger, internal_dict):
         "command script add --overwrite -f commands.visualize_expr visualize-expr"
     )
     debugger.HandleCommand(
-        "command script add --overwrite -f commands.visualize_type visualize"
+        "command script add --overwrite -f commands.visualize_type visualize-type"
     )
     debugger.HandleCommand(
         "command script add --overwrite -f commands.visualize_diff visualize-diff"
     )
+    debugger.HandleCommand(
+        "command script add --overwrite -f commands.visualize_history visualize-history"
+    )
 
     if SERVER_DICT_KEY not in internal_dict:
         internal_dict[SERVER_DICT_KEY] = Server()
-    if HISTORY_DICT_KEY not in internal_dict:
-        internal_dict[HISTORY_DICT_KEY] = History()

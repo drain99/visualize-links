@@ -77,7 +77,7 @@ def convert_to_cola(g: M.Graph) -> C.Graph:
 
         for name_diff, targets in name_link:
             diff_type: M.DiffType = (
-                name_diff if (name_diff is "old" or name_diff is "new") else ""
+                name_diff if (name_diff == "old" or name_diff == "new") else ""
             )
             source_index = node_id2index[id]
             for target in targets:

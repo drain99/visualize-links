@@ -54,27 +54,81 @@
       display: flex;
     }
 
-    #freeze-div {
+    #freezeDiv {
       margin-left: auto;
     }
 
-    #canvas-div {
-      position: relative;
+    #mainDiv {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      height: 100%;
+      overflow: hidden;
     }
 
-    .value-link {
+    #rightPaneAside {
+      border-left: 1px solid #e5e7eb;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #historyItemListDiv {
+      overflow-y: auto;
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .historyItem {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .historyItem:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .historyItem svg {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 8px;
+    }
+
+    .historyItem p {
+      margin: 0;
+      text-align: left;
+      font-size: 16px;
+      color: #374151;
+    }
+
+    #canvasDiv {
+      position: relative;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+    }
+
+    .valueLink {
       stroke: #2c2c2c;
       stroke-width: 2px;
       stroke-opacity: 1;
     }
 
-    .name-link {
+    .nameLink {
       stroke-width: 2px;
       stroke-opacity: 1;
-      marker-end: url(#canvas-arrowhead-end);
+      marker-end: url(#arrowheadEndMarker);
     }
 
-    .value-node {
+    .valueNode {
       fill: #6ba8d3;
       stroke: #000000;
       stroke-width: 1px;
@@ -83,7 +137,7 @@
       ry: 5;
     }
 
-    .name-node {
+    .nameNode {
       fill: #dca339;
       stroke: #ffffff;
       stroke-width: 1px;
@@ -92,7 +146,7 @@
       ry: 5;
     }
 
-    .value-node-label {
+    .valueNodeLabel {
       fill: black;
       font-family: Verdana;
       font-size: 16px;
@@ -101,7 +155,7 @@
       cursor: move;
     }
 
-    .name-node-label {
+    .nameNodeLabel {
       fill: white;
       font-family: Verdana;
       font-size: 16px;
@@ -110,18 +164,20 @@
       cursor: move;
     }
 
-    .value-link-forward-label {
-      fill: #000000;
+    .valueLinkForwardLabel {
+      fill: #2c2c2c;
       font-family: Verdana;
       font-size: 16px;
+      stroke-width: 0.7;
       text-anchor: middle;
       dominant-baseline: "middle";
     }
 
-    .value-link-backward-label {
-      fill: #000000;
+    .valueLinkBackwardLabel {
+      fill: #2c2c2c;
       font-family: Verdana;
       font-size: 16px;
+      stroke-width: 0.7;
       text-anchor: middle;
       dominant-baseline: "hanging";
     }
@@ -133,31 +189,39 @@
     <header>
       <strong>visualize-links</strong>
       <span id="status" class="status warn">connecting…</span>
-      <div id="freeze-div">
-        <input type="checkbox" id="freeze-checkbox" />
-        <label for="freeze-checkbox">Freeze nodes</label>
-      </div>
+      <!-- TODO: implement graph freeze support -->
+      <!-- <div id="freezeDiv">
+        <input type="checkbox" id="freezeCheckbox" />
+        <label for="freezeCheckbox">Freeze nodes</label>
+      </div> -->
     </header>
-    <div id="canvas-div">
-      <svg id="canvas-svg" preserveAspectRatio="xMidYMid meet" aria-label="Graph visualization">
-        <defs>
-          <marker id="canvas-arrowhead-end" viewBox="0 -5 10 10" refX="5" orient="auto" markerWidth="5" markerHeight="5"
-            stroke-width="0px" fill="context-stroke">
-            <path d="M0,-5L10,0L0,5L2,0"></path>
-          </marker>
-          <marker id="canvas-arrowhead-start" viewBox="0 -5 10 10" refX="5" orient="auto-start-reverse" markerWidth="5"
-            markerHeight="5" stroke-width="0px" fill="context-stroke">
-            <path d="M0,5L10,0L0,-5L2,0"></path>
-          </marker>
+    <div id="mainDiv">
+      <div id="canvasDiv">
+        <svg id="canvasSvg" preserveAspectRatio="xMidYMid meet" aria-label="Graph visualization">
+          <defs>
+            <marker id="arrowheadEndMarker" viewBox="0 -5 10 10" refX="5" orient="auto" markerWidth="5" markerHeight="5"
+              stroke-width="0px" fill="context-stroke">
+              <path d="M0,-5L10,0L0,5L2,0"></path>
+            </marker>
+            <marker id="arrowheadStartMarker" viewBox="0 -5 10 10" refX="5" orient="auto-start-reverse" markerWidth="5"
+              markerHeight="5" stroke-width="0px" fill="context-stroke">
+              <path d="M0,5L10,0L0,-5L2,0"></path>
+            </marker>
 
-          <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
-            <text x="20" y="20" text-anchor="middle" dominant-baseline="middle" font-size="16" fill="#d1d5db">+</text>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#gridPattern)" />
-        <g id="canvas">
-        </g>
-      </svg>
+            <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+              <text x="20" y="20" text-anchor="middle" dominant-baseline="middle" font-size="16" fill="#d1d5db">+</text>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#gridPattern)" />
+          <g id="canvas">
+          </g>
+        </svg>
+      </div>
+
+      <aside id="rightPaneAside">
+        <div id="historyItemListDiv">
+        </div>
+      </aside>
     </div>
     <script type="module" src="./src/main.ts"></script>
 </body>

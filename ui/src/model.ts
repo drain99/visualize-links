@@ -35,8 +35,15 @@ export type ColaLink = cola.Link<cola.Node> & {
   reverseLabelArrow?: boolean,
 };
 
-export type ColaModel = {
+export type ColaGraph = {
   nodes: ColaNode[],
   links: ColaLink[],
-  selfLinks: ColaLink[],
+  selfLinks?: ColaLink[],
+};
+
+export type HistoryLabel = {
+  filename: string
+  line: number
+  column: number
+  function_name: string
 };
