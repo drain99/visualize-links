@@ -3,6 +3,7 @@ from typing import Iterator
 from pydantic import BaseModel
 
 import model as M
+import cola_model as C
 
 
 class HistoryLabel(BaseModel):
@@ -12,17 +13,23 @@ class HistoryLabel(BaseModel):
     function_name: str
 
 
+class HistoryItem(BaseModel):
+    label: HistoryLabel
+    graph: M.Graph
+    cola_graph: C.Graph
+
+
 class History:
     def __init__(self):
-        self.h: dict[int, tuple[HistoryLabel, M.Graph]] = {}
+        self.h: dict[int, HistoryItem] = {}
 
-    def add(self, label: HistoryLabel, g: M.Graph) -> int:
+    def add(self, label: HistoryLabel, g: M.Graph, cg: C.Graph) -> int:
         index = len(self.h)
-        self.h[index] = (label, g)
+        self.h[index] = HistoryItem(label=label, graph=g, cola_graph=cg)
         return index
 
-    def at(self, i: int) -> tuple[HistoryLabel, M.Graph]:
+    def at(self, i: int) -> HistoryItem:
         return self.h[i]
 
-    def __iter__(self) -> Iterator[tuple[int, HistoryLabel, M.Graph]]:
-        return iter([(i, label, g) for i, (label, g) in reversed(self.h.items())])
+    def __iter__(self) -> Iterator[tuple[int, HistoryLabel]]:
+        return iter([(i, item.label) for i, item in reversed(self.h.items())])

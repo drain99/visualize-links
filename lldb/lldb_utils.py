@@ -10,8 +10,11 @@ from lldb import (
     SBValue,
     SBDeclaration,
     SBLineEntry,
+    SBFileSpec,
     SBType,
 )
+
+from history import HistoryLabel
 
 
 def get_current_frame(debugger: SBDebugger) -> SBFrame:
@@ -36,4 +39,18 @@ def is_pointer_to_type(type: SBType, allowed_types: Optional[set[str]]) -> bool:
         type.is_pointer
         and pointee_type.GetTypeClass() == lldb.eTypeClassStruct
         and (allowed_types is None or pointee_type.name in allowed_types)
+    )
+
+
+def get_label_for_frame(frame: SBFrame) -> HistoryLabel:
+    line_entry: SBLineEntry = frame.line_entry
+    file_spec: SBFileSpec = line_entry.GetFileSpec()
+    # remove argument type signature for now
+    func_name: str = frame.GetFunctionName().split("(")[0]
+
+    return HistoryLabel(
+        filename=file_spec.basename,
+        line=line_entry.line,
+        column=line_entry.column,
+        function_name=func_name,
     )

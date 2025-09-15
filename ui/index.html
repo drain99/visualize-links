@@ -54,6 +54,10 @@
       display: flex;
     }
 
+    #title {
+      margin-left: auto;
+    }
+
     #freezeDiv {
       margin-left: auto;
     }
@@ -104,6 +108,7 @@
 
     .historyItem p {
       margin: 0;
+      cursor: pointer;
       text-align: left;
       font-size: 16px;
       color: #374151;
@@ -189,6 +194,7 @@
     <header>
       <strong>visualize-links</strong>
       <span id="status" class="status warn">connecting…</span>
+      <span id="title"></span>
       <!-- TODO: implement graph freeze support -->
       <!-- <div id="freezeDiv">
         <input type="checkbox" id="freezeCheckbox" />

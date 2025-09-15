@@ -7,9 +7,10 @@ const WS_URL = "ws://localhost:8765";
 const WIDTH = 1200
 const HEIGHT = 800
 
-const canvasSvg = d3.select("#canvasSvg")
-  .attr("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
+let WS_CLIENT: WebSocket | null = null;
 
+const title = d3.select("#title");
+const canvasSvg = d3.select("#canvasSvg").attr("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
 const canvas = canvasSvg.select("#canvas");
 const historyCanvas = d3.select("#historyItemListDiv")
 
@@ -25,7 +26,7 @@ const nodePad = 8;
 // extra space used when computing link lengths based on label width
 const linkPad = 10;
 
-function renderGraph(graph: M.ColaGraph) {
+function renderGraph(graph: M.Graph) {
   console.log("graph", graph);
 
   // reset render
@@ -54,8 +55,7 @@ function renderGraph(graph: M.ColaGraph) {
     // link distance is computed on .start() call
     // length attribute wil be filled before that during d3 binding
     .linkDistance(link => link.length!)
-    .avoidOverlaps(true)
-    .handleDisconnected(true);
+    .avoidOverlaps(true);
 
   console.log("simulation", simulation);
 
@@ -348,7 +348,7 @@ function renderGraph(graph: M.ColaGraph) {
   // });
 }
 
-function renderHistory(history: { i: number, label: M.HistoryLabel }[]) {
+function renderHistory(history: M.History) {
   console.log(history);
 
   // reset render
@@ -357,25 +357,34 @@ function renderHistory(history: { i: number, label: M.HistoryLabel }[]) {
   historyCanvas.selectAll(".historyItem")
     .data(history)
     .enter().append("div").classed("historyItem", true)
-    .each(function (label) {
+    .each(function (item) {
       d3.select(this)
         .append("p")
-        .text(`#${label.i}`);
+        .text(`#${item.index}`);
 
       d3.select(this)
         .append("p")
-        .text(`${label.label.function_name}`);
+        .text(`${item.label.function_name}`);
 
       d3.select(this)
         .append("p")
-        .text(`${label.label.filename}:${label.label.line}:${label.label.column}`);
+        .text(`${item.label.filename}:${item.label.line}:${item.label.column}`);
+    })
+    .on("click", item => {
+      if (WS_CLIENT) {
+        WS_CLIENT.send(JSON.stringify({ type: "graph", index: item.index }));
+      }
     });
 }
 
+function setTitle(t: string) {
+  title.text(`Currently showing: ${t}`);
+}
+
 function setStatus(text: string, cls: string) {
-  const el = document.getElementById('status');
-  el!.textContent = text;
-  el!.className = `status ${cls}`;
+  d3.select("#status")
+    .attr("class", `status ${cls}`)
+    .text(text);
 }
 
 function connect() {
@@ -384,21 +393,22 @@ function connect() {
 
   ws.onopen = () => {
     setStatus('connected', 'ok');
+    WS_CLIENT = ws;
     ws.send(JSON.stringify({ type: 'history' }));
   };
 
   ws.onmessage = (event: MessageEvent<string>) => {
     try {
-      const data = JSON.parse(event.data);
+      const data: M.Data = JSON.parse(event.data);
 
       if (data.type === "history") {
-        const history: { i: number, label: M.HistoryLabel }[] = data.history;
-        renderHistory(history);
+        renderHistory(data.history);
       } else if (data.type === "graph") {
-        const graph: M.ColaGraph = data.graph;
-        renderGraph(graph);
-      } else {
-        throw new Error("Unrecognized message received from server!");
+        setTitle(data.title);
+        if (data.history) {
+          renderHistory(data.history);
+        }
+        renderGraph(data.graph);
       }
     } catch (e) {
       console.error('Invalid graph message:', e);
@@ -406,10 +416,14 @@ function connect() {
     }
   };
 
-  ws.onerror = () => setStatus('socket error', 'bad');
+  ws.onerror = () => {
+    setStatus('socket error', 'bad');
+    WS_CLIENT = null;
+  };
 
   ws.onclose = () => {
     setStatus('disconnected — retrying', 'bad');
+    WS_CLIENT = null;
     setTimeout(connect, 1000);
   };
 }
