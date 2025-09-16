@@ -67,6 +67,7 @@
       grid-template-columns: 1fr 280px;
       height: 100%;
       overflow: hidden;
+      position: relative;
     }
 
     #rightPaneAside {
@@ -186,6 +187,49 @@
       text-anchor: middle;
       dominant-baseline: "hanging";
     }
+
+    #loadingScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(250, 250, 250, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 100;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    #loadingScreen.visible {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #e5e7eb;
+      border-top: 6px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loadingText {
+      margin-top: 16px;
+      font-size: 18px;
+      color: #374151;
+    }
   </style>
 </head>
 
@@ -228,7 +272,13 @@
         <div id="historyItemListDiv">
         </div>
       </aside>
+
+      <div id="loadingScreen">
+        <div class="spinner"></div>
+        <div id="loadingText">Loading graph…</div>
+      </div>
     </div>
+
     <script type="module" src="./src/main.ts"></script>
 </body>
 

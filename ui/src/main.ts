@@ -27,6 +27,8 @@ const nodePad = 8;
 const linkPad = 10;
 
 function renderGraph(graph: M.Graph) {
+  showLoadingScreen();
+
   console.log("graph", graph);
 
   // reset render
@@ -316,6 +318,7 @@ function renderGraph(graph: M.Graph) {
   }
 
   simulation.on("tick", tick);
+  simulation.on("end", hideLoadingScreen);
 
   simulation.start(25, 50, 50);
   [valueNodesRect, nameNodesRect, valueNodesText, nameNodesText].forEach(d => d.call(simulation.drag));
@@ -385,6 +388,15 @@ function setStatus(text: string, cls: string) {
   d3.select("#status")
     .attr("class", `status ${cls}`)
     .text(text);
+}
+
+function showLoadingScreen(message = "Loading graph…") {
+  document.getElementById("loadingText")!.textContent = message;
+  document.getElementById("loadingScreen")!.classList.add("visible");
+}
+
+function hideLoadingScreen() {
+  document.getElementById("loadingScreen")!.classList.remove("visible");
 }
 
 function connect() {
