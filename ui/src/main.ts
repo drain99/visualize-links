@@ -4,15 +4,18 @@ import * as cola from 'webcola';
 import * as M from "./model";
 
 const WS_URL = "ws://localhost:8765";
-const WIDTH = 1200
-const HEIGHT = 800
 
 let WS_CLIENT: WebSocket | null = null;
+
+const canvasDiv = document.getElementById("canvasDiv");
+const rect = canvasDiv.getBoundingClientRect();
+const WIDTH = rect.width;
+const HEIGHT = rect.height;
 
 const title = d3.select("#title");
 const canvasSvg = d3.select("#canvasSvg").attr("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
 const canvas = canvasSvg.select("#canvas");
-const historyCanvas = d3.select("#historyItemListDiv")
+const historyCanvas = d3.select("#historyItemListDiv");
 
 canvasSvg.call(
   d3.zoom()
