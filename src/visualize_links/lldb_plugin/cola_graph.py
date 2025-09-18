@@ -1,7 +1,10 @@
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
+
 from collections import OrderedDict, defaultdict
 
-import model as M
-import cola_model as C
+from . import model as M
+from . import cola_model as C
 
 
 def convert_to_cola(g: M.Graph) -> C.Graph:

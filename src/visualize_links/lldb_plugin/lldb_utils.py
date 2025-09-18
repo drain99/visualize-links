@@ -1,3 +1,6 @@
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
+
 from typing import Optional
 
 import lldb
@@ -14,7 +17,7 @@ from lldb import (
     SBType,
 )
 
-from history import HistoryLabel
+from .history import HistoryLabel
 
 
 def get_current_frame(debugger: SBDebugger) -> SBFrame:

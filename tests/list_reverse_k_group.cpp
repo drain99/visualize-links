@@ -1,4 +1,7 @@
-#include "../tests/common.h"
+// Copyright (c) Indrajit Banerjee
+// Licensed under the MIT License.
+
+#include "common.h"
 
 class Solution {
 public:

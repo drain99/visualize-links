@@ -1,7 +1,10 @@
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
-import cola_model as C
-from history import HistoryLabel
+from . import cola_model as C
+from .history import HistoryLabel
 
 class ServedData(BaseModel):
     type: str

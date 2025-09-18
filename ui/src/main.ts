@@ -1,3 +1,6 @@
+// Copyright (c) Indrajit Banerjee
+// Licensed under the MIT License.
+
 import * as d3 from 'd3';
 import * as cola from 'webcola';
 
@@ -403,8 +406,8 @@ function hideLoadingScreen() {
 }
 
 function connect() {
-  const ws = new WebSocket(WS_URL);
   setStatus('connecting…', 'warn');
+  const ws = new WebSocket(WS_URL);
 
   ws.onopen = () => {
     setStatus('connected', 'ok');
@@ -432,7 +435,7 @@ function connect() {
   };
 
   ws.onerror = () => {
-    setStatus('socket error', 'bad');
+    setStatus('connection error', 'bad');
     WS_CLIENT = null;
   };
 

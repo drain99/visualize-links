@@ -1,17 +1,19 @@
-from typing import Optional, Iterable, Literal, cast
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
 
-import lldb
+from typing import Iterable
+
 from lldb import (
     SBValue,
     SBDebugger,
     SBCommandReturnObject,
 )
 
-import lldb_utils as utils
-from graph import GraphBuilder
-from server import Server
+from . import lldb_utils as utils
+from .graph import GraphBuilder
+from .server import Server
 
-SERVER_DICT_KEY = "visualize-links-server"
+SERVER_DICT_KEY = "visualize_links_server"
 
 
 def visualize_expr(
@@ -119,20 +121,3 @@ def visualize_history(
     for index, label in server.history:
         result.AppendMessage(f"{index} {label}")
 
-
-def __lldb_init_module(debugger: SBDebugger, internal_dict: dict):
-    debugger.HandleCommand(
-        "command script add --overwrite -f commands.visualize_expr visualize-expr"
-    )
-    debugger.HandleCommand(
-        "command script add --overwrite -f commands.visualize_type visualize-type"
-    )
-    debugger.HandleCommand(
-        "command script add --overwrite -f commands.visualize_diff visualize-diff"
-    )
-    debugger.HandleCommand(
-        "command script add --overwrite -f commands.visualize_history visualize-history"
-    )
-
-    if SERVER_DICT_KEY not in internal_dict:
-        internal_dict[SERVER_DICT_KEY] = Server()

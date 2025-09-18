@@ -1,3 +1,6 @@
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 from typing import TypeAlias, Literal

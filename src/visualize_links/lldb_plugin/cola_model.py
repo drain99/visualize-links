@@ -1,8 +1,11 @@
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
+
 from typing import TypeAlias, Literal
 
 from pydantic import BaseModel
 
-import model as M
+from . import model as M
 
 NodeIndex: TypeAlias = int
 Tag: TypeAlias = Literal["name", "value"]

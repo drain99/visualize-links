@@ -1,0 +1,4 @@
+#!/bin/bash
+visualize-links-ui
+clang++-19 --std=c++17 -g3 -Wno-unused-variable list.cpp -o list
+lldb-19 --source run_list.lldb list

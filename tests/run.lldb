@@ -1,4 +1,0 @@
-command script import ../lldb/commands.py
-shell sleep 3
-run
-visualize-type ListNode

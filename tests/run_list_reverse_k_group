@@ -1,0 +1,4 @@
+#!/bin/bash
+visualize-links-ui
+clang++-19 --std=c++17 -g3 -Wno-unused-variable list_reverse_k_group.cpp -o list_reverse_k_group
+lldb-19 --source run_list_reverse_k_group.lldb  list_reverse_k_group

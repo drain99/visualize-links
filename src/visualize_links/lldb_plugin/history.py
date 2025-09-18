@@ -1,9 +1,12 @@
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
+
 from typing import Iterator
 
 from pydantic import BaseModel
 
-import model as M
-import cola_model as C
+from . import model as M
+from . import cola_model as C
 
 
 class HistoryLabel(BaseModel):

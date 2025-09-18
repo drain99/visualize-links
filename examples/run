@@ -1,3 +1,0 @@
-#!/bin/bash
-clang++-19 --std=c++17 -g3 -Wall list_reverse_k_group.cpp -o list_reverse_k_group
-lldb-19 --source run.lldb  list_reverse_k_group

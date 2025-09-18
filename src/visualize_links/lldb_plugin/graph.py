@@ -1,10 +1,13 @@
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
+
 from typing import Optional, cast
 
 import lldb
 from lldb import SBValue, SBTypeMember, SBType
 
-import lldb_utils as utils
-import model as M
+from . import lldb_utils as utils
+from . import model as M
 
 
 class GraphBuilder:

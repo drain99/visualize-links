@@ -1,16 +1,16 @@
-from typing import Optional
+# Copyright (c) Indrajit Banerjee
+# Licensed under the MIT License.
 
-from pydantic import BaseModel
 import json
 import asyncio
 from threading import Thread
 from queue import Queue
 import websockets.server as wss
 
-import model as M
-from cola_graph import convert_to_cola
-from history import History, HistoryLabel
-import served_model as S
+from . import model as M
+from .cola_graph import convert_to_cola
+from .history import History, HistoryLabel
+from . import served_model as S
 
 
 class Server:

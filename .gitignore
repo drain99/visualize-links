@@ -1,6 +1,11 @@
 TODO
 
-tests/list
-examples/list_reverse_k_group
+ui/node_modules/
 
-ui/node_modules
+src/visualize_links.egg-info/
+ui/dist/
+build/
+dist/
+
+tests/list
+tests/list_reverse_k_group

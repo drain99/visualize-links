@@ -1,0 +1,2 @@
+command script import visualize_links
+shell sleep 2 # wait for server to startup & connect to ui
