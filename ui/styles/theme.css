@@ -1,0 +1,52 @@
+/*
+Copyright (c) Indrajit Banerjee
+Licensed under the MIT License.
+*/
+
+:root {
+  /* main */
+  --color-bg: #ffffff;
+  --color-text: #000000;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-bg-pane: #fafafa;
+  --color-ok-bg: #e6ffed;
+  --color-bad-bg: #ffebeb;
+  --color-warn-bg: #fff7e6;
+  --color-ok-text: #076b2f;
+  --color-bad-text: #7a0b0b;
+  --color-warn-text: #7a4b0b;
+
+  /* compare */
+  --color-modal-overlay: rgba(0, 0, 0, 0.4);
+  --color-modal-bg: #ffffff;
+  --color-btn-bg: #ffffff;
+  --color-btn-text: #000000;
+  --color-btn-border: #d1d5db;
+  --color-btn-primary-bg: #111827;
+  --color-btn-primary-bg-hover: #1f2937;
+  --color-btn-primary-text: #ffffff;
+
+  /* history */
+  --color-history-bg: #ffffff;
+  --color-history-border: #e5e7eb;
+  --color-history-text: #374151;
+  --color-history-shadow: rgba(0, 0, 0, 0.05);
+  --color-history-shadow-hover: rgba(0, 0, 0, 0.08);
+
+  /* canvas */
+  --color-link-stroke: #2c2c2c;
+  --color-value-node-fill: #6ba8d3;
+  --color-value-node-stroke: #000000;
+  --color-value-node-label: #000000;
+  --color-name-node-fill: #dca339;
+  --color-name-node-stroke: #ffffff;
+  --color-name-node-label: #ffffff;
+  --color-link-label: #2c2c2c;
+
+  /* loading */
+  --color-loading-bg: rgba(250, 250, 250, 0.9);
+  --color-loading-text: #374151;
+  --color-spinner-border: #e5e7eb;
+  --color-spinner-border-top: #3b82f6;
+}

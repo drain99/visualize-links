@@ -1,0 +1,14 @@
+# add a breakpoint after the initial list l is created [0,1,2,3,4]
+b list_reverse_k_group.cpp:63
+# add a breakpoint after l2 points to the intended new list [2,1,0,3,4]
+b list_reverse_k_group.cpp:66
+run
+# visualize the list pointed by l
+visualize-expr l
+continue
+# visualize the new list pointed by l2
+visualize-expr l2
+# visualize lists from l & l2
+visualize-type ListNode
+# visualize the transformation performed by reverseKGroup()
+visualize-diff 0 1

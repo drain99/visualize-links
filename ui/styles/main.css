@@ -1,0 +1,74 @@
+/*
+Copyright (c) Indrajit Banerjee
+Licensed under the MIT License.
+*/
+
+@import "theme.css";
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+#app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+header {
+  font-size: large;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+header .status {
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+header .ok {
+  background: var(--color-ok-bg);
+  color: var(--color-ok-text);
+}
+
+header .bad {
+  background: var(--color-bad-bg);
+  color: var(--color-bad-text);
+}
+
+header .warn {
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+}
+
+#title {
+  margin-left: auto;
+}
+
+#freezeDiv {
+  margin-left: auto;
+}
+
+#mainDiv {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  height: 100%;
+  overflow: hidden;
+}
+
+#rightPaneAside {
+  border-left: 1px solid var(--color-border);
+  background: var(--color-bg-pane);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}

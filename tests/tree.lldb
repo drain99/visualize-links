@@ -1,0 +1,3 @@
+run
+# show all trees at end
+visualize-type BinaryTreeNode

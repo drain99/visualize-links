@@ -1,8 +1,13 @@
 {
   "cSpell.words": [
     "addrs",
+    "Banerjee",
+    "Indrajit",
     "lldb",
-    "Pointee"
+    "Pointee",
+    "pydantic",
+    "setuptools",
+    "wslpath"
   ],
   "python.analysis.typeCheckingMode": "standard"
 }

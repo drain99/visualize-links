@@ -1,3 +1,6 @@
+// Copyright (c) Indrajit Banerjee
+// Licensed under the MIT License.
+
 import * as cola from 'webcola';
 
 export type Tag = "name" | "value";
@@ -46,6 +49,7 @@ export type HistoryLabel = {
   line: number
   column: number
   function_name: string
+  desc: string
 };
 
 export type HistoryItem = {

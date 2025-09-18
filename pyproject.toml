@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visualize-links"
+version = "1.0.1"
+description = "An LLDB plugin and web ui to visualize and debug pointer-based data structure programs written in C/C++."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Indrajit Banerjee", email = "indra99.acc@gmail.com" }
+]
+keywords = ["lldb", "visualization", "C++"]
+requires-python = ">=3.8"
+dependencies = [
+    "pydantic>=2.10",
+    "websockets>=11.0.3",
+]
+
+[project.scripts]
+visualize-links-ui = "visualize_links.ui:main"
+
+[project.urls]
+Homepage = "https://github.com/drain99/visualize-links"
+Repository = "https://github.com/drain99/visualize-links"
+Issues = "https://github.com/drain99/visualize-links/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"visualize_links" = ["static/**/*"]

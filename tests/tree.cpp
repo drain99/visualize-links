@@ -1,3 +1,6 @@
+// Copyright (c) Indrajit Banerjee
+// Licensed under the MIT License.
+
 #include <list>
 #include <tuple>
 #include <vector>

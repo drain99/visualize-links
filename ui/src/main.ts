@@ -1,3 +1,6 @@
+// Copyright (c) Indrajit Banerjee
+// Licensed under the MIT License.
+
 import * as d3 from 'd3';
 import * as cola from 'webcola';
 
@@ -21,6 +24,14 @@ canvasSvg.call(
   d3.zoom()
     .on("zoom", () => canvas.attr("transform", d3.event.transform))
 );
+
+const compareBtn = document.getElementById("compareBtn")!;
+const modal = document.getElementById("compareModal")!;
+const oldSelect = document.getElementById("oldSelect")!;
+const newSelect = document.getElementById("newSelect")!;
+const cancelBtn = document.getElementById("cancelCompareBtn")!;
+const confirmBtn = document.getElementById("confirmCompareBtn")!;
+let currentHistory: M.History = [];
 
 // node margin helps keep space between node & edge boundaries
 const nodeMargin = 4;
@@ -74,17 +85,23 @@ function renderGraph(graph: M.Graph) {
   // TODO: rendering logic for self-loops
   const valueSelfLinks = graph.selfLinks;
 
+  const styles = getComputedStyle(document.documentElement);
+  const noneDiffColor = styles.getPropertyValue("--color-btn-primary-bg-hover").trim();
+  const oldDiffColor = styles.getPropertyValue("--color-ok-text").trim();
+  const newDiffColor = styles.getPropertyValue("--color-bad-text").trim();
+  const applyDiffColor = (d: M.Link | M.LinkLabel) => {
+    switch (d.diff_type) {
+      case '': return noneDiffColor;
+      case 'old': return oldDiffColor;
+      case 'new': return newDiffColor;
+    }
+  }
+
   const nameLinks = graph.links.filter(link => link.tag === "name");
   const nameLinksLine = canvas.selectAll(".nameLink")
     .data(nameLinks)
     .enter().append("line").classed("nameLink", true)
-    .style("stroke", nameLink => {
-      switch (nameLink.diff_type) {
-        case "": return "#2c2c2c";
-        case "old": return "#9f1919ff";
-        case "new": return "#18750aff";
-      }
-    });
+    .style("stroke", applyDiffColor);
 
   const valueNodes = graph.nodes.filter(node => node.tag === "value");
   const valueNodesRect = canvas.selectAll(".valueNode")
@@ -162,13 +179,7 @@ function renderGraph(graph: M.Graph) {
     .attr("x", 0)
     .attr("dy", (_, i) => (i === 0) ? 0 : "-1.2em")
     .text(linkLabel => linkLabel.label)
-    .style("stroke", linkLabel => {
-      switch (linkLabel.diff_type) {
-        case "": return "#2c2c2c";
-        case "old": return "#9f1919ff";
-        case "new": return "#18750aff";
-      }
-    });
+    .style("stroke", applyDiffColor)
 
   valueLinkForwardText
     .each(function (valueLink) {
@@ -189,13 +200,7 @@ function renderGraph(graph: M.Graph) {
     .attr("x", 0)
     .attr("dy", (_, i) => (i === 0) ? 0 : "1.2em")
     .text(linkLabel => linkLabel.label)
-    .style("stroke", linkLabel => {
-      switch (linkLabel.diff_type) {
-        case "": return "#2c2c2c";
-        case "old": return "#9f1919ff";
-        case "new": return "#18750aff";
-      }
-    });
+    .style("stroke", applyDiffColor)
 
   valueLinkBackwardText
     .each(function (valueLink) {
@@ -355,6 +360,7 @@ function renderGraph(graph: M.Graph) {
 }
 
 function renderHistory(history: M.History) {
+  currentHistory = history;
   console.log(history);
 
   // reset render
@@ -375,16 +381,21 @@ function renderHistory(history: M.History) {
       d3.select(this)
         .append("p")
         .text(`${item.label.filename}:${item.label.line}:${item.label.column}`);
+
+      d3.select(this)
+        .append("p")
+        .text(`${item.label.desc}`);
     })
     .on("click", item => {
       if (WS_CLIENT) {
+        showLoadingScreen();
         WS_CLIENT.send(JSON.stringify({ type: "graph", index: item.index }));
       }
     });
 }
 
 function setTitle(t: string) {
-  title.text(`Currently showing: ${t}`);
+  title.text(`Active: ${t}`);
 }
 
 function setStatus(text: string, cls: string) {
@@ -395,16 +406,47 @@ function setStatus(text: string, cls: string) {
 
 function showLoadingScreen(message = "Loading graph…") {
   document.getElementById("loadingText")!.textContent = message;
-  document.getElementById("loadingScreen")!.classList.add("visible");
+  document.getElementById("loadingScreenDiv")!.classList.add("visible");
 }
 
 function hideLoadingScreen() {
-  document.getElementById("loadingScreen")!.classList.remove("visible");
+  document.getElementById("loadingScreenDiv")!.classList.remove("visible");
 }
 
+function populateCompareSelects() {
+  [oldSelect, newSelect].forEach(select => {
+    select.innerHTML = "";
+    currentHistory.forEach(hi => {
+      const opt = document.createElement("option");
+      opt.value = `${hi.index}`;
+      opt.textContent = `#${hi.index}`;
+      select.appendChild(opt);
+    });
+  });
+}
+
+compareBtn.addEventListener("click", () => {
+  populateCompareSelects();
+  modal.classList.remove("hidden");
+});
+
+cancelBtn.addEventListener("click", () => {
+  modal.classList.add("hidden");
+});
+
+confirmBtn.addEventListener("click", () => {
+  const oldIndex = Number(oldSelect.value);
+  const newIndex = Number(newSelect.value);
+  modal.classList.add("hidden");
+  if (WS_CLIENT) {
+    showLoadingScreen();
+    WS_CLIENT.send(JSON.stringify({ type: "diff_graph", old_index: oldIndex, new_index: newIndex }));
+  }
+});
+
 function connect() {
-  const ws = new WebSocket(WS_URL);
   setStatus('connecting…', 'warn');
+  const ws = new WebSocket(WS_URL);
 
   ws.onopen = () => {
     setStatus('connected', 'ok');
@@ -432,7 +474,7 @@ function connect() {
   };
 
   ws.onerror = () => {
-    setStatus('socket error', 'bad');
+    setStatus('connection error', 'bad');
     WS_CLIENT = null;
   };
 

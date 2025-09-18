@@ -1,0 +1,85 @@
+/*
+Copyright (c) Indrajit Banerjee
+Licensed under the MIT License.
+*/
+
+@import "theme.css";
+
+#canvasDiv {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+#canvasSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.valueLink {
+  stroke: var(--color-link-stroke);
+  stroke-width: 2px;
+  stroke-opacity: 1;
+}
+
+.nameLink {
+  stroke-width: 2px;
+  stroke-opacity: 1;
+  marker-end: url(#arrowheadEndMarker);
+}
+
+.valueNode {
+  fill: var(--color-value-node-fill);
+  stroke: var(--color-value-node-stroke);
+  stroke-width: 1px;
+  cursor: move;
+  rx: 5;
+  ry: 5;
+}
+
+.nameNode {
+  fill: var(--color-name-node-fill);
+  stroke: var(--color-name-node-stroke);
+  stroke-width: 1px;
+  cursor: move;
+  rx: 5;
+  ry: 5;
+}
+
+.valueNodeLabel {
+  fill: var(--color-value-node-label);
+  font-family: Verdana;
+  font-size: 16px;
+  text-anchor: left;
+  dominant-baseline: "hanging";
+  cursor: move;
+}
+
+.nameNodeLabel {
+  fill: var(--color-name-node-label);
+  font-family: Verdana;
+  font-size: 16px;
+  text-anchor: left;
+  dominant-baseline: "hanging";
+  cursor: move;
+}
+
+.valueLinkForwardLabel {
+  fill: var(--color-link-label);
+  font-family: Verdana;
+  font-size: 16px;
+  stroke-width: 0.7;
+  text-anchor: middle;
+  dominant-baseline: "middle";
+}
+
+.valueLinkBackwardLabel {
+  fill: var(--color-link-label);
+  font-family: Verdana;
+  font-size: 16px;
+  stroke-width: 0.7;
+  text-anchor: middle;
+  dominant-baseline: "hanging";
+}
