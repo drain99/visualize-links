@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "visualize-links"
-version = "1.0.1"
+version = "1.0.2"
 description = "An LLDB plugin and web ui to visualize and debug pointer-based data structure programs written in C/C++."
 readme = "README.md"
 license = "MIT"
